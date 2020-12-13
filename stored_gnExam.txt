@@ -1,0 +1,44 @@
+create proc Generate_Exam (@st_id int ,@crs_id int ,@no_M int ,@no_TorF int)
+as
+--generate exam
+insert into stud_Exam (st_id,crs_id)values(@st_id ,@crs_id)
+--create based on session table
+create table #generatedExam(
+qs_id int,
+qs_content varchar(500),
+qs_ans varchar(500),
+ARRAYINDEX int identity(1,1)
+)
+insert into  #generatedExam ( qs_id , qs_content ,qs_ans)
+select top(5)  qs_id, qs_content ,qs_ans from questions 
+where qs_type='True_False'
+order by newid()
+
+insert into  #generatedExam ( qs_id , qs_content ,qs_ans)
+select top(5)  qs_id, qs_content ,qs_ans from questions 
+where qs_type='Multiple_Choice'
+order by newid()
+
+--generate exam qs
+declare @ex_id int =(SELECT top(1)
+        Ex_id 
+    FROM 
+        stud_Exam
+    WHERE 
+        st_id=@st_id and crs_id=@crs_id
+	order by Ex_id desc	)
+
+declare @current_qs_id int 
+declare @current_modelans varchar(500)
+declare @current_qscontent varchar(500)
+declare @index int =0
+while (@index<10)
+begin
+select @index  =@index+1
+SELECT @current_qs_id = qs_id from  #generatedExam where ARRAYINDEX = @index
+SELECT @current_modelans = qs_ans from  #generatedExam where ARRAYINDEX = @index
+SELECT @current_qscontent = qs_content from  #generatedExam where ARRAYINDEX = @index
+insert into Exam (Ex_id,qs_id,qs_content,model_ans)
+ VALUES(@ex_id,@current_qs_id, @current_qscontent,@current_modelans)
+end
+return
